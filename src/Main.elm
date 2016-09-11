@@ -81,14 +81,15 @@ viewBox dimensions user =
 
         yPosition =
             user.coordinates.y - (height // 2)
-
-        attributeString =
-            [ xPosition, yPosition, width, height ]
-              |> List.map toString
-              |> String.join (" ")
-
     in
-        Svg.Attributes.viewBox attributeString
+        Svg.Attributes.viewBox (attributeString [ xPosition, yPosition, width, height ])
+
+
+attributeString : List x -> String
+attributeString list =
+    list
+        |> List.map toString
+        |> String.join (" ")
 
 
 
