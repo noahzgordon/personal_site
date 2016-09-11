@@ -67,21 +67,32 @@ handleKeyPress keyCode model =
     let
         delta =
             case keyCode of
-                97 -> ( -20, 0 )
-                119 -> ( 0, -20 )
-                100 -> ( 20, 0 )
-                115 -> ( 0, 20 )
-                _ -> ( 0, 0 )
+                97 ->
+                    ( -20, 0 )
+
+                119 ->
+                    ( 0, -20 )
+
+                100 ->
+                    ( 20, 0 )
+
+                115 ->
+                    ( 0, 20 )
+
+                _ ->
+                    ( 0, 0 )
     in
         { model | user = adjustCoordinates model.user delta }
 
 
 adjustCoordinates : Element -> ( Int, Int ) -> Element
 adjustCoordinates player delta =
-  let
-      ( xDelta, yDelta ) = delta
-  in
-      { player | x = player.x + xDelta, y = player.y + yDelta }
+    let
+        ( xDelta, yDelta ) =
+            delta
+    in
+        { player | x = player.x + xDelta, y = player.y + yDelta }
+
 
 
 -- view
