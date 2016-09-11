@@ -15,11 +15,12 @@ import Ports
 
 type alias Model =
     { viewportDimensions : Maybe ( Int, Int )
-    , user : User
+    , user : Element
+    , wizard : Element
     }
 
 
-type alias User =
+type alias Element =
     { x : Int
     , y : Int
     }
@@ -44,6 +45,7 @@ initialModel : Model
 initialModel =
     { viewportDimensions = Nothing
     , user = { x = 500, y = 500 }
+    , wizard = { x = 500, y = 200 }
     }
 
 
@@ -65,16 +67,16 @@ handleKeyPress keyCode model =
     let
         delta =
             case keyCode of
-                97 -> ( -10, 0 )
-                119 -> ( 0, 10 )
-                100 -> ( 10, 0 )
-                115 -> ( 0, -10 )
+                97 -> ( -20, 0 )
+                119 -> ( 0, -20 )
+                100 -> ( 20, 0 )
+                115 -> ( 0, 20 )
                 _ -> ( 0, 0 )
     in
         { model | user = adjustCoordinates model.user delta }
 
 
-adjustCoordinates : User -> ( Int, Int ) -> User
+adjustCoordinates : Element -> ( Int, Int ) -> Element
 adjustCoordinates player delta =
   let
       ( xDelta, yDelta ) = delta
@@ -94,15 +96,21 @@ view model =
         Just dimensions ->
             Svg.svg [ (viewBox dimensions model.user) ]
                 [ user model.user
+                , wizard model.wizard
                 ]
 
 
-user : User -> Svg.Svg Message
+user : Element -> Svg.Svg Message
 user userElement =
     Svg.circle [ Svg.Attributes.cx (toString userElement.x), Svg.Attributes.cy (toString userElement.y), Svg.Attributes.r "10" ] []
 
 
-viewBox : ( Int, Int ) -> User -> Svg.Attribute Message
+wizard : Element -> Svg.Svg Message
+wizard wizardElement =
+    Svg.circle [ Svg.Attributes.cx (toString wizardElement.x), Svg.Attributes.cy (toString wizardElement.y), Svg.Attributes.r "10", Svg.Attributes.fill "blue" ] []
+
+
+viewBox : ( Int, Int ) -> Element -> Svg.Attribute Message
 viewBox dimensions user =
     let
         ( width, height ) =
