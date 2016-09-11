@@ -4,10 +4,12 @@ import Html exposing (Html)
 import Html.App exposing (program)
 import Task
 import Platform.Cmd exposing ((!))
+import Platform.Sub
 import String
 import Svg
 import Svg.Attributes
 import Window
+import Keyboard
 import Ports
 
 
@@ -18,13 +20,15 @@ type alias Model =
 
 
 type alias User =
-    { coordinates : { x : Int, y : Int }
+    { x : Int
+    , y : Int
     }
 
 
 type Message
     = WindowResize ( Int, Int )
     | WindowSizeNotFound
+    | KeyPress Keyboard.KeyCode
 
 
 main =
@@ -39,7 +43,7 @@ main =
 initialModel : Model
 initialModel =
     { viewportDimensions = Nothing
-    , user = { coordinates = { x = 500, y = 500 } }
+    , user = { x = 500, y = 500 }
     }
 
 
@@ -49,8 +53,36 @@ update message model =
         WindowResize dimensions ->
             { model | viewportDimensions = Just dimensions } ! []
 
+        KeyPress keyCode ->
+            handleKeyPress keyCode model ! []
+
         _ ->
             model ! []
+
+
+handleKeyPress : Keyboard.KeyCode -> Model -> Model
+handleKeyPress keyCode model =
+    let
+        delta =
+            case keyCode of
+                97 -> ( -10, 0 )
+                119 -> ( 0, 10 )
+                100 -> ( 10, 0 )
+                115 -> ( 0, -10 )
+                _ -> ( 0, 0 )
+    in
+        { model | user = adjustCoordinates model.user delta }
+
+
+adjustCoordinates : User -> ( Int, Int ) -> User
+adjustCoordinates player delta =
+  let
+      ( xDelta, yDelta ) = delta
+  in
+      { player | x = player.x + xDelta, y = player.y + yDelta }
+
+
+-- view
 
 
 view : Model -> Html Message
@@ -67,7 +99,7 @@ view model =
 
 user : User -> Svg.Svg Message
 user userElement =
-    Svg.circle [ Svg.Attributes.cx (toString userElement.coordinates.x), Svg.Attributes.cy (toString userElement.coordinates.y), Svg.Attributes.r "10" ] []
+    Svg.circle [ Svg.Attributes.cx (toString userElement.x), Svg.Attributes.cy (toString userElement.y), Svg.Attributes.r "10" ] []
 
 
 viewBox : ( Int, Int ) -> User -> Svg.Attribute Message
@@ -77,10 +109,10 @@ viewBox dimensions user =
             dimensions
 
         xPosition =
-            user.coordinates.x - (width // 2)
+            user.x - (width // 2)
 
         yPosition =
-            user.coordinates.y - (height // 2)
+            user.y - (height // 2)
     in
         Svg.Attributes.viewBox (attributeString [ xPosition, yPosition, width, height ])
 
@@ -98,7 +130,10 @@ attributeString list =
 
 subscriptions : Model -> Sub Message
 subscriptions model =
-    Window.resizes (\size -> WindowResize ( size.width, size.height ))
+    Platform.Sub.batch
+        [ Window.resizes (\size -> WindowResize ( size.width, size.height ))
+        , Keyboard.presses KeyPress
+        ]
 
 
 getWindowSize : Cmd Message
