@@ -1,6 +1,4 @@
 port module Ports exposing (..)
 
-import Data exposing (Dimensions)
 
-
-port dimensions : (Dimensions -> msg) -> Sub msg
+port dimensions : ( ( Int, Int ) -> msg) -> Sub msg
