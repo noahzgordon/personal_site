@@ -8,20 +8,9 @@
     <title>Noah Zachary Gordon</title>
     <script src="elm.js" type="text/javascript"></script>
   </head>
-  <body>
+  <body style="margin: 0;">
     <script type="text/javascript">
       var app = Elm.Main.fullscreen();
-
-      function sendWindowDimensions() {
-        app.ports.dimensions.send({
-          x: Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
-          y: Math.max(document.documentElement.clientHeight, window.innerHeight || 0)
-        });
-      }
-
-      // TODO: wait to load app (or provide loading animation) until after web fonts load.
-      window.onload = sendWindowDimensions;
-      window.onresize = sendWindowDimensions;
     </script>
   </body>
 </html>
