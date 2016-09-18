@@ -15,12 +15,18 @@ import Ports
 type alias Model =
     { viewportDimensions : Maybe ( Int, Int )
     , user : Element
-    , wizard : Element
+    , elements : List Element
     }
 
 
+type ElementKind
+    = User
+    | Wizard
+
+
 type alias Element =
-    { x : Int
+    { kind : ElementKind
+    , x : Int
     , y : Int
     }
 
@@ -43,8 +49,10 @@ main =
 initialModel : Model
 initialModel =
     { viewportDimensions = Nothing
-    , user = { x = 500, y = 500 }
-    , wizard = { x = 500, y = 200 }
+    , user = { kind = User, x = 500, y = 500 }
+    , elements =
+        [ { kind = Wizard, x = 500, y = 200 }
+        ]
     }
 
 
@@ -84,17 +92,25 @@ handleKeyDown code model =
 
                 _ ->
                     ( 0, 0 )
+
+        user =
+            model.user
+
+        newX =
+            user.x + fst delta
+
+        newY =
+            user.y + snd delta
     in
-        { model | user = adjustCoordinates model.user delta }
+        if not (isOccupied model.elements ( newX, newY )) then
+            { model | user = { user | x = newX, y = newY } }
+        else
+            model
 
 
-adjustCoordinates : Element -> ( Int, Int ) -> Element
-adjustCoordinates player delta =
-    let
-        ( xDelta, yDelta ) =
-            delta
-    in
-        { player | x = player.x + xDelta, y = player.y + yDelta }
+isOccupied : List Element -> ( Int, Int ) -> Bool
+isOccupied elements coords =
+    List.any (\elem -> ( elem.x, elem.y ) == coords) elements
 
 
 
@@ -109,19 +125,17 @@ view model =
 
         Just dimensions ->
             Svg.svg [ (viewBox dimensions model.user) ]
-                [ user model.user
-                , wizard model.wizard
-                ]
+                (List.map renderElement ([ model.user ] ++ model.elements))
 
 
-user : Element -> Svg.Svg Message
-user userElement =
-    Svg.circle [ Svg.Attributes.cx (toString userElement.x), Svg.Attributes.cy (toString userElement.y), Svg.Attributes.r "10" ] []
+renderElement : Element -> Svg.Svg Message
+renderElement element =
+    case element.kind of
+        User ->
+            Svg.circle [ Svg.Attributes.cx (toString element.x), Svg.Attributes.cy (toString element.y), Svg.Attributes.r "10" ] []
 
-
-wizard : Element -> Svg.Svg Message
-wizard wizardElement =
-    Svg.circle [ Svg.Attributes.cx (toString wizardElement.x), Svg.Attributes.cy (toString wizardElement.y), Svg.Attributes.r "10", Svg.Attributes.fill "blue" ] []
+        Wizard ->
+            Svg.circle [ Svg.Attributes.cx (toString element.x), Svg.Attributes.cy (toString element.y), Svg.Attributes.r "10", Svg.Attributes.fill "blue" ] []
 
 
 viewBox : ( Int, Int ) -> Element -> Svg.Attribute Message
