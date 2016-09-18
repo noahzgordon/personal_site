@@ -9,7 +9,6 @@ import String
 import Svg
 import Svg.Attributes
 import Window
-import Keyboard
 import Ports
 
 
@@ -29,7 +28,7 @@ type alias Element =
 type Message
     = WindowResize ( Int, Int )
     | WindowSizeNotFound
-    | KeyPress Keyboard.KeyCode
+    | KeyDown String
 
 
 main =
@@ -55,28 +54,32 @@ update message model =
         WindowResize dimensions ->
             { model | viewportDimensions = Just dimensions } ! []
 
-        KeyPress keyCode ->
-            handleKeyPress keyCode model ! []
+        KeyDown code ->
+            handleKeyDown code model ! []
 
         _ ->
             model ! []
 
 
-handleKeyPress : Keyboard.KeyCode -> Model -> Model
-handleKeyPress keyCode model =
+handleKeyDown : String -> Model -> Model
+handleKeyDown code model =
     let
         delta =
-            case keyCode of
-                97 ->
+            case code of
+                -- left
+                "KeyA" ->
                     ( -20, 0 )
 
-                119 ->
+                -- up
+                "KeyW" ->
                     ( 0, -20 )
 
-                100 ->
+                -- right
+                "KeyD" ->
                     ( 20, 0 )
 
-                115 ->
+                -- down
+                "KeyS" ->
                     ( 0, 20 )
 
                 _ ->
@@ -151,7 +154,7 @@ subscriptions : Model -> Sub Message
 subscriptions model =
     Platform.Sub.batch
         [ Window.resizes (\size -> WindowResize ( size.width, size.height ))
-        , Keyboard.presses KeyPress
+        , Ports.keyboard KeyDown
         ]
 
 

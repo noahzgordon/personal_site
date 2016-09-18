@@ -1,4 +1,4 @@
 port module Ports exposing (..)
 
 
-port dimensions : ( ( Int, Int ) -> msg) -> Sub msg
+port keyboard : (String -> msg) -> Sub msg
