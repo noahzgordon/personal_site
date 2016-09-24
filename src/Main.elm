@@ -6,6 +6,7 @@ import Task
 import Platform.Cmd exposing ((!))
 import Platform.Sub
 import String
+import List.Extra as List
 import Svg
 import Svg.Attributes
 import Animation
@@ -14,9 +15,15 @@ import Ports
 
 
 type alias Model =
-    { viewportDimensions : Maybe ( Int, Int )
+    { viewBox : Maybe ViewBox
     , user : Element
     , elements : List Element
+    }
+
+
+type alias ViewBox =
+    { dimensions : ( Int, Int )
+    , style : Animation.State
     }
 
 
@@ -38,6 +45,7 @@ type Message
     | WindowSizeNotFound
     | KeyDown String
     | AnimateUser Animation.Msg
+    | AnimateViewBox Animation.Msg
 
 
 main =
@@ -51,7 +59,7 @@ main =
 
 initialModel : Model
 initialModel =
-    { viewportDimensions = Nothing
+    { viewBox = Nothing
     , user = { kind = User, x = 500, y = 500, style = initialPosition ( 500.0, 500.0 ) }
     , elements =
         [ { kind = Wizard, x = 500, y = 200, style = initialPosition ( 500.0, 200.0 ) }
@@ -68,7 +76,11 @@ update : Message -> Model -> ( Model, Cmd Message )
 update message model =
     case message of
         WindowResize dimensions ->
-            { model | viewportDimensions = Just dimensions } ! []
+            let
+                viewBox =
+                    { dimensions = dimensions, style = Animation.style (viewBoxProperties dimensions (model.user.x, model.user.y)) }
+            in
+                { model | viewBox = Just viewBox } ! []
 
         KeyDown code ->
             handleKeyDown code model ! []
@@ -82,6 +94,18 @@ update message model =
                     { user | style = Animation.update animMsg user.style }
             in
                 { model | user = animatedUser } ! []
+
+        AnimateViewBox animMsg ->
+            case model.viewBox of
+                Nothing ->
+                    model ! []
+
+                Just viewBox ->
+                    let
+                        animatedViewBox =
+                            { viewBox | style = Animation.update animMsg viewBox.style }
+                    in
+                        { model | viewBox = Just animatedViewBox } ! []
 
         _ ->
             model ! []
@@ -122,18 +146,32 @@ handleKeyDown code model =
     in
         if not (isOccupied model.elements ( newX, newY )) then
             let
-                animation =
-                    Animation.interrupt
-                        [ Animation.to [ Animation.cx (toFloat newX), Animation.cy (toFloat newY) ]
-                        ]
-                        user.style
+                applyUserAnimation =
+                    Animation.interrupt [ Animation.to [ Animation.cx (toFloat newX), Animation.cy (toFloat newY) ] ]
 
                 animatedUser =
-                    { user | style = animation, x = newX, y = newY }
+                    { user | style = applyUserAnimation user.style, x = newX, y = newY }
             in
-                { model | user = animatedUser }
+                { model | user = animatedUser, viewBox = animateViewBox model ( newX, newY ) }
         else
             model
+
+
+animateViewBox : Model -> ( Int, Int ) -> Maybe ViewBox
+animateViewBox model coords =
+    case model.viewBox of
+        Nothing ->
+            Nothing
+
+        Just viewBox ->
+            let
+                newProperties =
+                    viewBoxProperties viewBox.dimensions coords
+
+                animation =
+                    Animation.interrupt [ Animation.to newProperties ] viewBox.style
+            in
+                Just { viewBox | style = animation }
 
 
 isOccupied : List Element -> ( Int, Int ) -> Bool
@@ -147,12 +185,12 @@ isOccupied elements coords =
 
 view : Model -> Html Message
 view model =
-    case model.viewportDimensions of
+    case model.viewBox of
         Nothing ->
             Html.text "Loading..."
 
-        Just dimensions ->
-            Svg.svg [ (viewBox dimensions model.user) ]
+        Just viewBox ->
+            Svg.svg (Animation.render viewBox.style)
                 (List.map renderElement ([ model.user ] ++ model.elements))
 
 
@@ -176,26 +214,28 @@ renderElement element =
         Svg.circle elementStyle []
 
 
-viewBox : ( Int, Int ) -> Element -> Svg.Attribute Message
-viewBox dimensions user =
+
+-- Animation.Property is not yet exposed
+-- viewBoxProperties : ( Int, Int ) -> Element -> List Animation.Property
+
+
+viewBoxProperties dimensions userCoords =
     let
         ( width, height ) =
             dimensions
 
         xPosition =
-            user.x - (width // 2)
+            fst userCoords - (width // 2) |> toFloat
 
         yPosition =
-            user.y - (height // 2)
+            snd userCoords - (height // 2) |> toFloat
     in
-        Svg.Attributes.viewBox (attributeString [ xPosition, yPosition, width, height ])
+        [ Animation.viewBox xPosition yPosition (toFloat width) (toFloat height) ]
 
 
 attributeString : List x -> String
-attributeString list =
-    list
-        |> List.map toString
-        |> String.join (" ")
+attributeString =
+    List.map toString >> String.join (" ")
 
 
 
@@ -204,11 +244,21 @@ attributeString list =
 
 subscriptions : Model -> Sub Message
 subscriptions model =
-    Platform.Sub.batch
-        [ Window.resizes (\size -> WindowResize ( size.width, size.height ))
-        , Ports.keyboard KeyDown
-        , Animation.subscription AnimateUser [ model.user.style ]
-        ]
+    let
+        viewBoxStyleArr =
+            case model.viewBox of
+                Nothing ->
+                    []
+
+                Just viewBox ->
+                    [ viewBox.style ]
+    in
+        Platform.Sub.batch
+            [ Window.resizes (\size -> WindowResize ( size.width, size.height ))
+            , Ports.keyboard KeyDown
+            , Animation.subscription AnimateUser [ model.user.style ]
+            , Animation.subscription AnimateViewBox viewBoxStyleArr
+            ]
 
 
 getWindowSize : Cmd Message
