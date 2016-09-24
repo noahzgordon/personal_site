@@ -8,6 +8,7 @@ import Platform.Sub
 import String
 import Svg
 import Svg.Attributes
+import Animation
 import Window
 import Ports
 
@@ -28,6 +29,7 @@ type alias Element =
     { kind : ElementKind
     , x : Int
     , y : Int
+    , style : Animation.State
     }
 
 
@@ -35,6 +37,7 @@ type Message
     = WindowResize ( Int, Int )
     | WindowSizeNotFound
     | KeyDown String
+    | AnimateUser Animation.Msg
 
 
 main =
@@ -49,11 +52,16 @@ main =
 initialModel : Model
 initialModel =
     { viewportDimensions = Nothing
-    , user = { kind = User, x = 500, y = 500 }
+    , user = { kind = User, x = 500, y = 500, style = initialPosition ( 500.0, 500.0 ) }
     , elements =
-        [ { kind = Wizard, x = 500, y = 200 }
+        [ { kind = Wizard, x = 500, y = 200, style = initialPosition ( 500.0, 200.0 ) }
         ]
     }
+
+
+initialPosition : ( Float, Float ) -> Animation.State
+initialPosition coords =
+    Animation.style [ Animation.cx (fst coords), Animation.cy (snd coords) ]
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -64,6 +72,16 @@ update message model =
 
         KeyDown code ->
             handleKeyDown code model ! []
+
+        AnimateUser animMsg ->
+            let
+                user =
+                    model.user
+
+                animatedUser =
+                    { user | style = Animation.update animMsg user.style }
+            in
+                { model | user = animatedUser } ! []
 
         _ ->
             model ! []
@@ -103,7 +121,17 @@ handleKeyDown code model =
             user.y + snd delta
     in
         if not (isOccupied model.elements ( newX, newY )) then
-            { model | user = { user | x = newX, y = newY } }
+            let
+                animation =
+                    Animation.interrupt
+                        [ Animation.to [ Animation.cx (toFloat newX), Animation.cy (toFloat newY) ]
+                        ]
+                        user.style
+
+                animatedUser =
+                    { user | style = animation, x = newX, y = newY }
+            in
+                { model | user = animatedUser }
         else
             model
 
@@ -130,12 +158,22 @@ view model =
 
 renderElement : Element -> Svg.Svg Message
 renderElement element =
-    case element.kind of
-        User ->
-            Svg.circle [ Svg.Attributes.cx (toString element.x), Svg.Attributes.cy (toString element.y), Svg.Attributes.r "10" ] []
+    let
+        elementColor =
+            case element.kind of
+                User ->
+                    "red"
 
-        Wizard ->
-            Svg.circle [ Svg.Attributes.cx (toString element.x), Svg.Attributes.cy (toString element.y), Svg.Attributes.r "10", Svg.Attributes.fill "blue" ] []
+                Wizard ->
+                    "blue"
+
+        elementStyle =
+            Animation.render element.style
+                ++ [ Svg.Attributes.r "10"
+                   , Svg.Attributes.fill elementColor
+                   ]
+    in
+        Svg.circle elementStyle []
 
 
 viewBox : ( Int, Int ) -> Element -> Svg.Attribute Message
@@ -169,6 +207,7 @@ subscriptions model =
     Platform.Sub.batch
         [ Window.resizes (\size -> WindowResize ( size.width, size.height ))
         , Ports.keyboard KeyDown
+        , Animation.subscription AnimateUser [ model.user.style ]
         ]
 
 
