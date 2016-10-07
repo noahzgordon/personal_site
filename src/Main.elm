@@ -41,7 +41,7 @@ type alias Element =
 
 
 type Message
-    = WindowResize ( Float, Float )
+    = WindowResize { width : Int, height : Int }
     | WindowSizeNotFound
     | KeyDown String
     | AnimateUser Animation.Msg
@@ -75,40 +75,36 @@ initialPosition coords =
 update : Message -> Model -> ( Model, Cmd Message )
 update message model =
     case message of
-        WindowResize dimensions ->
+        WindowResize size ->
             let
+                dimensions =
+                    ( toFloat size.width, toFloat size.height )
+
+                viewBoxStyle =
+                    viewBoxProperties dimensions ( model.user.x, model.user.y )
+                        |> Animation.style
+
                 viewBox =
-                    { dimensions = dimensions, style = Animation.style (viewBoxProperties dimensions (model.user.x, model.user.y)) }
+                    { dimensions = dimensions, style = viewBoxStyle }
             in
                 { model | viewBox = Just viewBox } ! []
 
         KeyDown code ->
             handleKeyDown code model ! []
 
-        AnimateUser animMsg ->
-            let
-                user =
-                    model.user
+        AnimateUser animationMessage ->
+            { model | user = animate animationMessage model.user } ! []
 
-                animatedUser =
-                    { user | style = Animation.update animMsg user.style }
-            in
-                { model | user = animatedUser } ! []
-
-        AnimateViewBox animMsg ->
-            case model.viewBox of
-                Nothing ->
-                    model ! []
-
-                Just viewBox ->
-                    let
-                        animatedViewBox =
-                            { viewBox | style = Animation.update animMsg viewBox.style }
-                    in
-                        { model | viewBox = Just animatedViewBox } ! []
+        AnimateViewBox animationMessage ->
+            { model | viewBox = Maybe.map (animate animationMessage) model.viewBox } ! []
 
         _ ->
             model ! []
+
+
+animate : Animation.Msg -> { a | style : Animation.State } -> { a | style : Animation.State }
+animate message record =
+    { record | style = Animation.update message record.style }
 
 
 handleKeyDown : String -> Model -> Model
@@ -254,7 +250,7 @@ subscriptions model =
                     [ viewBox.style ]
     in
         Platform.Sub.batch
-            [ Window.resizes (\size -> WindowResize ( toFloat size.width, toFloat size.height ))
+            [ Window.resizes WindowResize
             , Ports.keyboard KeyDown
             , Animation.subscription AnimateUser [ model.user.style ]
             , Animation.subscription AnimateViewBox viewBoxStyleArr
@@ -263,4 +259,4 @@ subscriptions model =
 
 getWindowSize : Cmd Message
 getWindowSize =
-    Task.perform (\_ -> WindowSizeNotFound) (\size -> WindowResize ( toFloat size.width, toFloat size.height )) Window.size
+    Task.perform (always WindowSizeNotFound) WindowResize Window.size
