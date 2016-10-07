@@ -22,7 +22,7 @@ type alias Model =
 
 
 type alias ViewBox =
-    { dimensions : ( Int, Int )
+    { dimensions : ( Float, Float )
     , style : Animation.State
     }
 
@@ -34,14 +34,14 @@ type ElementKind
 
 type alias Element =
     { kind : ElementKind
-    , x : Int
-    , y : Int
+    , x : Float
+    , y : Float
     , style : Animation.State
     }
 
 
 type Message
-    = WindowResize ( Int, Int )
+    = WindowResize ( Float, Float )
     | WindowSizeNotFound
     | KeyDown String
     | AnimateUser Animation.Msg
@@ -60,9 +60,9 @@ main =
 initialModel : Model
 initialModel =
     { viewBox = Nothing
-    , user = { kind = User, x = 500, y = 500, style = initialPosition ( 500.0, 500.0 ) }
+    , user = { kind = User, x = 500.0, y = 500.0, style = initialPosition ( 500.0, 500.0 ) }
     , elements =
-        [ { kind = Wizard, x = 500, y = 200, style = initialPosition ( 500.0, 200.0 ) }
+        [ { kind = Wizard, x = 500.0, y = 200.0, style = initialPosition ( 500.0, 200.0 ) }
         ]
     }
 
@@ -147,7 +147,7 @@ handleKeyDown code model =
         if not (isOccupied model.elements ( newX, newY )) then
             let
                 applyUserAnimation =
-                    Animation.interrupt [ Animation.to [ Animation.cx (toFloat newX), Animation.cy (toFloat newY) ] ]
+                    Animation.interrupt [ Animation.to [ Animation.cx newX, Animation.cy newY ] ]
 
                 animatedUser =
                     { user | style = applyUserAnimation user.style, x = newX, y = newY }
@@ -157,7 +157,7 @@ handleKeyDown code model =
             model
 
 
-animateViewBox : Model -> ( Int, Int ) -> Maybe ViewBox
+animateViewBox : Model -> ( Float, Float ) -> Maybe ViewBox
 animateViewBox model coords =
     case model.viewBox of
         Nothing ->
@@ -174,7 +174,7 @@ animateViewBox model coords =
                 Just { viewBox | style = animation }
 
 
-isOccupied : List Element -> ( Int, Int ) -> Bool
+isOccupied : List Element -> ( Float, Float ) -> Bool
 isOccupied elements coords =
     List.any (\elem -> ( elem.x, elem.y ) == coords) elements
 
@@ -225,12 +225,12 @@ viewBoxProperties dimensions userCoords =
             dimensions
 
         xPosition =
-            fst userCoords - (width // 2) |> toFloat
+            fst userCoords - (width / 2)
 
         yPosition =
-            snd userCoords - (height // 2) |> toFloat
+            snd userCoords - (height / 2)
     in
-        [ Animation.viewBox xPosition yPosition (toFloat width) (toFloat height) ]
+        [ Animation.viewBox xPosition yPosition width height ]
 
 
 attributeString : List x -> String
@@ -254,7 +254,7 @@ subscriptions model =
                     [ viewBox.style ]
     in
         Platform.Sub.batch
-            [ Window.resizes (\size -> WindowResize ( size.width, size.height ))
+            [ Window.resizes (\size -> WindowResize ( toFloat size.width, toFloat size.height ))
             , Ports.keyboard KeyDown
             , Animation.subscription AnimateUser [ model.user.style ]
             , Animation.subscription AnimateViewBox viewBoxStyleArr
@@ -263,4 +263,4 @@ subscriptions model =
 
 getWindowSize : Cmd Message
 getWindowSize =
-    Task.perform (\_ -> WindowSizeNotFound) (\size -> WindowResize ( size.width, size.height )) Window.size
+    Task.perform (\_ -> WindowSizeNotFound) (\size -> WindowResize ( toFloat size.width, toFloat size.height )) Window.size
