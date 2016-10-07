@@ -11,6 +11,7 @@ import Svg
 import Svg.Attributes
 import Animation
 import Window
+import Keys
 import Ports
 
 
@@ -43,7 +44,7 @@ type alias Element =
 type Message
     = WindowResize { width : Int, height : Int }
     | WindowSizeNotFound
-    | KeyDown String
+    | KeyDown Keys.Key
     | AnimateUser Animation.Msg
     | AnimateViewBox Animation.Msg
 
@@ -89,8 +90,11 @@ update message model =
             in
                 { model | viewBox = Just viewBox } ! []
 
-        KeyDown code ->
-            handleKeyDown code model ! []
+        KeyDown key ->
+            if Keys.isValid key then
+                handleKeyDown key model ! []
+            else
+                model ! []
 
         AnimateUser animationMessage ->
             { model | user = animate animationMessage model.user } ! []
@@ -107,29 +111,11 @@ animate message record =
     { record | style = Animation.update message record.style }
 
 
-handleKeyDown : String -> Model -> Model
-handleKeyDown code model =
+handleKeyDown : Keys.Key -> Model -> Model
+handleKeyDown key model =
     let
         delta =
-            case code of
-                -- left
-                "KeyA" ->
-                    ( -20, 0 )
-
-                -- up
-                "KeyW" ->
-                    ( 0, -20 )
-
-                -- right
-                "KeyD" ->
-                    ( 20, 0 )
-
-                -- down
-                "KeyS" ->
-                    ( 0, 20 )
-
-                _ ->
-                    ( 0, 0 )
+            Keys.delta key
 
         user =
             model.user
@@ -251,7 +237,7 @@ subscriptions model =
     in
         Platform.Sub.batch
             [ Window.resizes WindowResize
-            , Ports.keyboard KeyDown
+            , Ports.keyboard (KeyDown << Keys.fromCode)
             , Animation.subscription AnimateUser [ model.user.style ]
             , Animation.subscription AnimateViewBox viewBoxStyleArr
             ]
