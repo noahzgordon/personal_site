@@ -134,7 +134,7 @@ handleKeyDown key model =
         newY =
             user.y + snd delta
     in
-        if not (isOccupied model.elements ( newX, newY )) then
+        if (isEmpty model ( newX, newY )) && (isWithinRoom ( newX, newY )) then
             let
                 applyUserAnimation =
                     Animation.interrupt [ Animation.to [ Animation.cx newX, Animation.cy newY ] ]
@@ -164,9 +164,15 @@ animateViewBox model coords =
                 Just { viewBox | style = animation }
 
 
-isOccupied : List Element -> ( Float, Float ) -> Bool
-isOccupied elements coords =
+isEmpty : Model -> ( Float, Float ) -> Bool
+isEmpty { elements } coords =
     List.any (\elem -> ( elem.x, elem.y ) == coords) elements
+        |> not
+
+
+isWithinRoom : ( Float, Float ) -> Bool
+isWithinRoom ( x, y ) =
+    x > 0 && y > 0 && x < (fst roomSize) && y < (fst roomSize)
 
 
 
