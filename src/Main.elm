@@ -15,6 +15,14 @@ import Keys
 import Ports
 
 
+roomSize =
+    ( 1000.0, 1000.0 )
+
+
+userStart =
+    ( 500.0, 500.0 )
+
+
 type alias Model =
     { viewBox : Maybe ViewBox
     , user : Element
@@ -61,7 +69,7 @@ main =
 initialModel : Model
 initialModel =
     { viewBox = Nothing
-    , user = { kind = User, x = 500.0, y = 500.0, style = initialPosition ( 500.0, 500.0 ) }
+    , user = { kind = User, x = 500.0, y = 500.0, style = initialPosition userStart }
     , elements =
         [ { kind = Wizard, x = 500.0, y = 200.0, style = initialPosition ( 500.0, 200.0 ) }
         ]
@@ -173,7 +181,16 @@ view model =
 
         Just viewBox ->
             Svg.svg (Animation.render viewBox.style)
-                (List.map renderElement ([ model.user ] ++ model.elements))
+                ([ Svg.rect
+                    [ Svg.Attributes.width (fst roomSize |> toString)
+                    , Svg.Attributes.height (snd roomSize |> toString)
+                    , Svg.Attributes.x "0"
+                    , Svg.Attributes.y "0"
+                    ]
+                    []
+                 ]
+                    ++ (List.map renderElement ([ model.user ] ++ model.elements))
+                )
 
 
 renderElement : Element -> Svg.Svg Message
