@@ -78,7 +78,7 @@ initialModel =
 
 initialPosition : ( Float, Float ) -> Animation.State
 initialPosition coords =
-    Animation.style [ Animation.cx (fst coords), Animation.cy (snd coords) ]
+    Animation.style [ Animation.translate (Animation.px (fst coords)) (Animation.px (snd coords)) ]
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -137,7 +137,7 @@ handleKeyDown key model =
         if (isEmpty model ( newX, newY )) && (isWithinRoom ( newX, newY )) then
             let
                 applyUserAnimation =
-                    Animation.interrupt [ Animation.to [ Animation.cx newX, Animation.cy newY ] ]
+                    Animation.interrupt [ Animation.to [ Animation.translate (Animation.px newX) (Animation.px newY) ] ]
 
                 animatedUser =
                     { user | style = applyUserAnimation user.style, x = newX, y = newY }
@@ -201,22 +201,27 @@ view model =
 
 renderElement : Element -> Svg.Svg Message
 renderElement element =
-    let
-        elementColor =
-            case element.kind of
-                User ->
-                    "red"
+    case element.kind of
+        User ->
+            let
+                userStyle =
+                    Animation.render element.style
+                        ++ [ Svg.Attributes.fill "red"
+                           , Svg.Attributes.points "0,20 10,0 20,20"
+                           ]
+            in
+                Svg.polygon userStyle []
 
-                Wizard ->
-                    "blue"
-
-        elementStyle =
-            Animation.render element.style
-                ++ [ Svg.Attributes.r "10"
-                   , Svg.Attributes.fill elementColor
-                   ]
-    in
-        Svg.circle elementStyle []
+        Wizard ->
+            let
+                wizardStyle =
+                    Animation.render element.style
+                        ++ [ Svg.Attributes.width "20"
+                           , Svg.Attributes.height "20"
+                           , Svg.Attributes.fill "blue"
+                           ]
+            in
+                Svg.rect wizardStyle []
 
 
 
