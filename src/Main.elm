@@ -122,22 +122,34 @@ animate message record =
 handleKeyDown : Keys.Key -> Model -> Model
 handleKeyDown key model =
     let
-        delta =
+        ( deltaX, deltaY ) =
             Keys.delta key
+
+        angle =
+            Keys.angle key
+
+        ( turnX, turnY ) =
+            Keys.turnTransform key
 
         user =
             model.user
 
         newX =
-            user.x + fst delta
+            user.x + deltaX
 
         newY =
-            user.y + snd delta
+            user.y + deltaY
     in
         if (isEmpty model ( newX, newY )) && (isWithinRoom ( newX, newY )) then
             let
                 applyUserAnimation =
-                    Animation.interrupt [ Animation.to [ Animation.translate (Animation.px newX) (Animation.px newY) ] ]
+                    Animation.interrupt
+                        [ Animation.set
+                          [ Animation.translate (Animation.px (user.x + turnX)) (Animation.px (user.y + turnY))
+                          , Animation.rotate (Animation.deg angle)
+                          ]
+                        , Animation.to [ Animation.translate (Animation.px (newX + turnX)) (Animation.px (newY + turnY)) ]
+                        ]
 
                 animatedUser =
                     { user | style = applyUserAnimation user.style, x = newX, y = newY }
