@@ -52,7 +52,7 @@ type alias Element =
 type Message
     = WindowResize { width : Int, height : Int }
     | WindowSizeNotFound
-    | KeyDown Keys.Key
+    | KeyDown Keys.KeyAction
     | AnimateUser Animation.Msg
     | AnimateViewBox Animation.Msg
 
@@ -99,10 +99,12 @@ update message model =
                 { model | viewBox = Just viewBox } ! []
 
         KeyDown key ->
-            if Keys.isValid key then
-                handleKeyDown key model ! []
-            else
-                model ! []
+            case key of
+                Keys.Movement action ->
+                    handleMovement action model ! []
+
+                Keys.Invalid ->
+                    model ! []
 
         AnimateUser animationMessage ->
             { model | user = animate animationMessage model.user } ! []
@@ -119,36 +121,30 @@ animate message record =
     { record | style = Animation.update message record.style }
 
 
-handleKeyDown : Keys.Key -> Model -> Model
-handleKeyDown key model =
+handleMovement : Keys.MovementAction -> Model -> Model
+handleMovement action model =
     let
-        ( deltaX, deltaY ) =
-            Keys.delta key
-
-        angle =
-            Keys.angle key
-
-        ( turnX, turnY ) =
-            Keys.turnTransform key
+        { angle, vector, angleAdjustment } =
+            Keys.movementProperties action
 
         user =
             model.user
 
         newX =
-            user.x + deltaX
+            user.x + fst vector
 
         newY =
-            user.y + deltaY
+            user.y + snd vector
     in
         if (isEmpty model ( newX, newY )) && (isWithinRoom ( newX, newY )) then
             let
                 applyUserAnimation =
                     Animation.interrupt
                         [ Animation.set
-                          [ Animation.translate (Animation.px (user.x + turnX)) (Animation.px (user.y + turnY))
-                          , Animation.rotate (Animation.deg angle)
-                          ]
-                        , Animation.to [ Animation.translate (Animation.px (newX + turnX)) (Animation.px (newY + turnY)) ]
+                            [ Animation.translate (Animation.px (user.x + fst angleAdjustment)) (Animation.px (user.y + snd angleAdjustment))
+                            , Animation.rotate (Animation.deg angle)
+                            ]
+                        , Animation.to [ Animation.translate (Animation.px (newX + fst angleAdjustment)) (Animation.px (newY + snd angleAdjustment)) ]
                         ]
 
                 animatedUser =
@@ -277,7 +273,7 @@ subscriptions model =
     in
         Platform.Sub.batch
             [ Window.resizes WindowResize
-            , Ports.keyboard (KeyDown << Keys.fromCode)
+            , Ports.keyboard (KeyDown << Keys.actionFromCode)
             , Animation.subscription AnimateUser [ model.user.style ]
             , Animation.subscription AnimateViewBox viewBoxStyleArr
             ]

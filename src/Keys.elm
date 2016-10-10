@@ -1,102 +1,67 @@
 module Keys exposing (..)
 
 
-type Key
-    = W
-    | A
-    | S
-    | D
+type KeyAction
+    = Movement MovementAction
     | Invalid
 
 
-fromCode : String -> Key
-fromCode keyCode =
+type MovementAction
+    = Up
+    | Down
+    | Left
+    | Right
+
+
+actionFromCode : String -> KeyAction
+actionFromCode keyCode =
     case keyCode of
         "KeyW" ->
-            W
+            Movement Up
 
         "KeyA" ->
-            A
+            Movement Left
 
         "KeyS" ->
-            S
+            Movement Down
 
         "KeyD" ->
-            D
+            Movement Right
 
         _ ->
             Invalid
 
 
-isValid : Key -> Bool
-isValid =
-    (/=) Invalid
+type alias MovementProperties =
+    { angle : Float
+    , vector : ( Float, Float )
+    , angleAdjustment : ( Float, Float )
+    }
 
 
-delta : Key -> ( Float, Float )
-delta key =
+movementProperties : MovementAction -> MovementProperties
+movementProperties key =
     case key of
-        -- left
-        A ->
-            ( -20.0, 0.0 )
+        Up ->
+            { angle = 0
+            , vector = ( 0, -20 )
+            , angleAdjustment = ( 0, 0 )
+            }
 
-        -- up
-        W ->
-            ( 0.0, -20.0 )
+        Down ->
+            { angle = 180
+            , vector = ( 0, 20 )
+            , angleAdjustment = ( 20, 20 )
+            }
 
-        -- right
-        D ->
-            ( 20.0, 0.0 )
+        Left ->
+            { angle = 270
+            , vector = ( -20, 0 )
+            , angleAdjustment = ( 0, 20 )
+            }
 
-        -- down
-        S ->
-            ( 0.0, 20.0 )
-
-        _ ->
-            ( 0.0, 0.0 )
-
-
-angle : Key -> Float
-angle key =
-    case key of
-        -- left
-        A ->
-            270.0
-
-        -- up
-        W ->
-            0.0
-
-        -- right
-        D ->
-            90.0
-
-        -- down
-        S ->
-            180.0
-
-        _ ->
-            0.0
-
-
-turnTransform : Key -> ( Float, Float )
-turnTransform key =
-    case key of
-        -- left
-        A ->
-            ( 0, 20 )
-
-        -- up
-        W ->
-            ( 0, 0 )
-
-        -- right
-        D ->
-            ( 20, 0 )
-
-        -- down
-        S ->
-            ( 20, 20 )
-
-        _ ->
-            ( 0, 0 )
+        Right ->
+            { angle = 90
+            , vector = ( 20, 0 )
+            , angleAdjustment = ( 20, 0 )
+            }
