@@ -1,11 +1,11 @@
 module Main exposing (main)
 
-import Html exposing (Html)
-import Html.App exposing (program)
+import Html exposing (Html, program)
 import Task
 import Platform.Cmd exposing ((!))
 import Platform.Sub
 import String
+import Tuple exposing (first, second)
 import List.Extra as List
 import Svg
 import Svg.Attributes
@@ -77,8 +77,8 @@ initialModel =
 
 
 initialPosition : ( Float, Float ) -> Animation.State
-initialPosition coords =
-    Animation.style [ Animation.translate (Animation.px (fst coords)) (Animation.px (snd coords)) ]
+initialPosition ( x, y ) =
+    Animation.style [ Animation.translate (Animation.px x) (Animation.px y) ]
 
 
 update : Message -> Model -> ( Model, Cmd Message )
@@ -131,20 +131,20 @@ handleMovement action model =
             model.user
 
         newX =
-            user.x + fst vector
+            user.x + first vector
 
         newY =
-            user.y + snd vector
+            user.y + second vector
     in
         if (isEmpty model ( newX, newY )) && (isWithinRoom ( newX, newY )) then
             let
                 applyUserAnimation =
                     Animation.interrupt
                         [ Animation.set
-                            [ Animation.translate (Animation.px (user.x + fst angleAdjustment)) (Animation.px (user.y + snd angleAdjustment))
+                            [ Animation.translate (Animation.px (user.x + first angleAdjustment)) (Animation.px (user.y + second angleAdjustment))
                             , Animation.rotate (Animation.deg angle)
                             ]
-                        , Animation.to [ Animation.translate (Animation.px (newX + fst angleAdjustment)) (Animation.px (newY + snd angleAdjustment)) ]
+                        , Animation.to [ Animation.translate (Animation.px (newX + first angleAdjustment)) (Animation.px (newY + second angleAdjustment)) ]
                         ]
 
                 animatedUser =
@@ -180,7 +180,7 @@ isEmpty { elements } coords =
 
 isWithinRoom : ( Float, Float ) -> Bool
 isWithinRoom ( x, y ) =
-    x > 0 && y > 0 && x < (fst roomSize) && y < (fst roomSize)
+    x > 0 && y > 0 && x < (first roomSize) && y < (second roomSize)
 
 
 
@@ -196,8 +196,8 @@ view model =
         Just viewBox ->
             Svg.svg (Animation.render viewBox.style)
                 ([ Svg.rect
-                    [ Svg.Attributes.width (fst roomSize |> toString)
-                    , Svg.Attributes.height (snd roomSize |> toString)
+                    [ Svg.Attributes.width (first roomSize |> toString)
+                    , Svg.Attributes.height (second roomSize |> toString)
                     , Svg.Attributes.x "0"
                     , Svg.Attributes.y "0"
                     ]
@@ -237,16 +237,13 @@ renderElement element =
 -- viewBoxProperties : ( Int, Int ) -> Element -> List Animation.Property
 
 
-viewBoxProperties dimensions userCoords =
+viewBoxProperties ( width, height ) ( userX, userY ) =
     let
-        ( width, height ) =
-            dimensions
-
         xPosition =
-            fst userCoords - (width / 2)
+            userX - (width / 2)
 
         yPosition =
-            snd userCoords - (height / 2)
+            userY - (height / 2)
     in
         [ Animation.viewBox xPosition yPosition width height ]
 
@@ -281,4 +278,4 @@ subscriptions model =
 
 getWindowSize : Cmd Message
 getWindowSize =
-    Task.perform (always WindowSizeNotFound) WindowResize Window.size
+    Task.perform WindowResize Window.size

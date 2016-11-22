@@ -1,11 +1,11 @@
 {
-    "elm-lang/animation-frame": "1.0.0",
-    "mdgriffith/elm-style-animation": "3.1.0",
-    "elm-lang/virtual-dom": "1.1.1",
-    "elm-lang/dom": "1.1.0",
-    "elm-lang/html": "1.1.0",
-    "elm-community/list-extra": "3.1.0",
-    "elm-lang/svg": "1.1.1",
-    "elm-lang/window": "1.0.0",
-    "elm-lang/core": "4.0.5"
+    "elm-lang/animation-frame": "1.0.1",
+    "mdgriffith/elm-style-animation": "3.4.0",
+    "elm-lang/virtual-dom": "2.0.1",
+    "elm-lang/dom": "1.1.1",
+    "elm-lang/html": "2.0.0",
+    "elm-community/list-extra": "4.0.0",
+    "elm-lang/svg": "2.0.0",
+    "elm-lang/window": "1.0.1",
+    "elm-lang/core": "5.0.0"
 }
